@@ -1,0 +1,60 @@
+services:
+  # 1. API Server (Render Web Service)
+  - type: web
+    name: daily-health-api
+    env: node
+    plan: starter
+    buildCommand: npm install && npm run build --workspace=@health-care-center/api
+    startCommand: npm run db:deploy && npm run start --workspace=@health-care-center/api
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: daily-health-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: daily-health-redis
+          property: connectionString
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: FIELD_ENCRYPTION_KEY
+        generateValue: true
+      - key: CLIENT_ORIGIN
+        sync: false
+
+  # 2. Background Worker (Render Background Worker)
+  - type: worker
+    name: daily-health-worker
+    env: node
+    plan: starter
+    buildCommand: npm install && npm run build --workspace=@health-care-center/worker
+    startCommand: npm run start --workspace=@health-care-center/worker
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: daily-health-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: daily-health-redis
+          property: connectionString
+
+databases:
+  # 3. PostgreSQL Database
+  - name: daily-health-db
+    plan: starter
+    databaseName: dailyhealth
+    user: healthadmin
+
+  # 4. Redis Key-Value Store
+  - name: daily-health-redis
+    plan: starter
