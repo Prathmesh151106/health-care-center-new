@@ -1,0 +1,11 @@
+import { Router } from 'express';
+export const usersRoutes = Router();
+export const logsRoutes = Router();
+export const goalsRoutes = Router();
+export const medicinesRoutes = Router();
+export const remindersRoutes = Router();
+export const appointmentsRoutes = Router();
+export const analyticsRoutes = Router();
+export const notificationsRoutes = Router();
+export const assistantRoutes = Router();
+export const privacyRoutes = Router();

@@ -1,0 +1,58 @@
+# Implementation Plan: Daily Health Companion v2 Backend
+
+## 1. Overview & Repository Discovery (Phase 0)
+- **Repository State:** Clean git repository on `main`. Currently contains `README.md`, `ARCHITECTURE (1).md`, and `PRD.md`.
+- **Target Stack:** Strict TypeScript, Node.js 20+, npm workspaces (`apps/api`, `apps/worker`, `packages/shared`, `packages/config`), Express, Prisma, PostgreSQL, Redis, BullMQ, Zod, Pino, argon2, jsonwebtoken, Helmet, CORS, express-rate-limit, web-push, Nodemailer, Vitest, Supertest, rrule.
+- **Frontend Compatibility Contract:** Web frontend expects routes under `/api/...` (auth, users, logs, goals, medicines, reminders, appointments, analytics, notifications, assistant, privacy, health). All response shapes follow consistent formats and unified error envelope `{ "error": { "code": "...", "message": "...", "details": [], "requestId": "..." } }`.
+- **Infrastructure Target:** Render blueprint (`render.yaml`), Docker Compose (`docker-compose.yml`), CI (`.github/workflows/ci.yml`).
+
+## 2. Phases of Execution
+- **Phase 0:** Discovery, baseline analysis, git verification (Completed).
+- **Phase 1: Foundation & Runtime**
+  - Root `package.json` with npm workspaces (`apps/api`, `apps/worker`, `packages/shared`, `packages/config`).
+  - Shared TypeScript (`packages/config/tsconfig.base.json`), ESLint, Prettier.
+  - `packages/shared`: Shared schemas, types, constants (log types, medicine status, reminder kinds, error codes).
+  - `apps/api`: Setup structure, dependencies, Zod env validation (`src/config/env.ts`), database client (`src/config/db.ts`), Redis client (`src/config/redis.ts`), Pino HTTP request logger with redaction, Helmet, CORS, JSON limit (100KB), cookie parser, global rate limiter, error envelope & middleware, liveness (`/api/health`) & readiness (`/api/health/ready`), graceful shutdown handler.
+  - Local Docker Compose & multi-stage Dockerfiles.
+- **Phase 2: Data Model & Migrations**
+  - Prisma schema with PostgreSQL provider, UUID v4 primary keys, explicit relations, onDelete cascade where appropriate, UTC timestamps.
+  - Models: User, RefreshToken, PasswordResetToken, HealthLog, Goal, Medicine, MedicineEvent, Reminder, PushSubscription, Appointment, AssistantMessage, UserSettings, AuditLog.
+  - Indexes: user log queries, active reminder queries, medicine event lookups, refresh token families.
+  - Migrations and realistic dev seed script (`seed.ts`) with synthetic health data (strictly blocking production run).
+- **Phase 3: Authentication, Authorization & Security**
+  - Argon2id password hashing + common password blocklist.
+  - JWT access tokens (15m, Bearer) + 256-bit opaque refresh tokens (SHA-256 hashed in DB, stored in HttpOnly cookie).
+  - Atomic refresh token rotation with family revocation on reuse detection.
+  - Redis-backed rate limiting (strict auth limiter with email/IP hash, general limiter, assistant limiter).
+  - Generic auth responses to prevent email enumeration.
+  - Field-level authenticated encryption (AES-256-GCM) with key-version prefix for notes & symptoms.
+  - Typed auth middleware and ownership-scoped query helpers.
+  - Minimal, allowlisted audit logging (login, reset, export, delete).
+- **Phase 4: Core API Modules**
+  - Architecture: Routes -> Controller -> Service -> Persistence (Prisma).
+  - Users & Settings: `/api/users/me`, `/api/users/me/settings`.
+  - Logs: CRUD `/api/logs`, filtering, cursor pagination, bulk create `/api/logs/bulk`, safe neutral ranges, encrypted notes.
+  - Goals: CRUD `/api/goals`, uniqueness per type/period.
+  - Medicines: CRUD `/api/medicines`, event recording (`/api/medicines/:id/events`), adherence calculation, linked reminders.
+  - Reminders: CRUD `/api/reminders`, rrule recurrence, timezone-aware next fire time, quiet hours, snooze.
+  - Appointments: CRUD `/api/appointments` with reminder offsets.
+  - Analytics: `/api/analytics/summary`, `/api/analytics/trends`, `/api/analytics/streaks`, cached in Redis with user-scoped keys.
+  - Notifications: Web push subscription CRUD, test notifications, VAPID public key.
+  - Privacy: `/api/privacy/export` (streamed decrypted user data), `/api/privacy/account` (account deletion with password confirmation).
+- **Phase 5: Queues, Scheduling & Worker (`apps/worker`)**
+  - BullMQ queues: reminders, push, email, summaries, maintenance.
+  - Minute scheduler claiming due reminders with concurrency guards.
+  - Push delivery via web-push (cleanup on 404/410).
+  - Email delivery via Nodemailer templates (reminders, password resets, weekly statistics).
+  - Maintenance job: auto-mark pending medicine events as MISSED after grace period, purge expired tokens and old audit logs.
+- **Phase 6: AI Wellness Assistant**
+  - LLMProvider interface with mock adapter and live adapter (Gemini/OpenAI compatible).
+  - Strict prompts: general wellness only, no diagnosis, no dosage advice.
+  - `safety.ts`: English + Hindi crisis pre-filter (returns emergency helpline guidance immediately without calling LLM), post-filter for diagnosis/dosage claims, disclaimer.
+  - Context generation: De-identified 7-day summary enabled only if `aiContextOptIn: true`.
+  - Assistant endpoints: POST `/api/assistant/chat`, GET/DELETE `/api/assistant/history`.
+- **Phase 7: Documentation, Delivery & CI**
+  - OpenAPI 3 specification (`docs/openapi.yaml`) & Swagger UI `/api/docs`.
+  - Comprehensive docs: `docs/api.md`, `docs/database.md` (with Mermaid ERD), `docs/security.md`, `docs/ai-safety.md`.
+  - Unit and integration tests (Vitest + Supertest) covering auth, logs, medicines, reminders, assistant safety, and cross-user isolation.
+  - CI workflow (`.github/workflows/ci.yml`), `render.yaml`, `.env.example`, `scripts/generate-vapid-keys.ts`.
