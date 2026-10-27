@@ -8,18 +8,16 @@ import { globalRateLimiter } from './middleware/rateLimit.js';
 import { errorHandlerMiddleware, notFoundHandlerMiddleware } from './middleware/errorHandler.js';
 import { healthRoutes } from './modules/health/health.routes.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
-import {
-  usersRoutes,
-  logsRoutes,
-  goalsRoutes,
-  medicinesRoutes,
-  remindersRoutes,
-  appointmentsRoutes,
-  analyticsRoutes,
-  notificationsRoutes,
-  assistantRoutes,
-  privacyRoutes
-} from './modules/stubs.js';
+import { usersRoutes } from './modules/users/users.routes.js';
+import { logsRoutes } from './modules/logs/logs.routes.js';
+import { goalsRoutes } from './modules/goals/goals.routes.js';
+import { medicinesRoutes } from './modules/medicines/medicines.routes.js';
+import { remindersRoutes } from './modules/reminders/reminders.routes.js';
+import { appointmentsRoutes } from './modules/appointments/appointments.routes.js';
+import { analyticsRoutes } from './modules/analytics/analytics.routes.js';
+import { notificationsRoutes } from './modules/notifications/notifications.routes.js';
+import { assistantRoutes } from './modules/assistant/assistant.routes.js';
+import { privacyRoutes } from './modules/privacy/privacy.routes.js';
 
 export function createApp(): Express {
   const app = express();
@@ -43,7 +41,6 @@ export function createApp(): Express {
   app.use(
     cors({
       origin: (origin, callback) => {
-        // allow requests with no origin (like mobile apps, curl, server-to-server)
         if (!origin) return callback(null, true);
         if (allowedOrigins.includes(origin) || env.NODE_ENV !== 'production') {
           return callback(null, true);

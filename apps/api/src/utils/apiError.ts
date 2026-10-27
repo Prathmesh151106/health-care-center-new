@@ -18,6 +18,10 @@ export class ApiError extends Error {
     return new ApiError(400, ErrorCode.VALIDATION_ERROR, message, details);
   }
 
+  static validationError(message: string, details: ApiErrorDetail[] = []): ApiError {
+    return new ApiError(400, ErrorCode.VALIDATION_ERROR, message, details);
+  }
+
   static unauthorized(message: string = 'Authentication required'): ApiError {
     return new ApiError(401, ErrorCode.UNAUTHORIZED, message);
   }
@@ -36,6 +40,10 @@ export class ApiError extends Error {
 
   static tooManyRequests(message: string = 'Too many requests, please slow down'): ApiError {
     return new ApiError(429, ErrorCode.TOO_MANY_REQUESTS, message);
+  }
+
+  static serviceUnavailable(message: string = 'Service temporarily unavailable'): ApiError {
+    return new ApiError(503, ErrorCode.SERVICE_UNAVAILABLE, message);
   }
 
   static internal(message: string = 'An unexpected error occurred'): ApiError {
