@@ -15,8 +15,7 @@ An animated, full-stack health companion: log daily health data, get reliable re
 - 🤖 AI wellness assistant with safety guardrails
 - 🌐 3D / animated UI (React Three Fiber + Framer Motion), dark/light theme
 - 📱 Installable PWA, English + Hindi
-- 🔒 Privacy controls: export and delete all your data
-
+- 🔒 Privacy controls: export and delete all your data.
 ## 🧱 Tech Stack
 
 | Area | Tech |
